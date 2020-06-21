@@ -36,8 +36,8 @@ MidPoint readPatch(std::string filename) {
   MidPoint result(n);
 
   for (size_t i = 0; i < n; ++i) {
-    auto outer = readCurve(f);
-    auto inner = readCurve(f);
+    auto outer = readCurve(f); outer.normalize();
+    auto inner = readCurve(f); inner.normalize();
     result.setInterpolant(i, outer, inner);
   }
 
