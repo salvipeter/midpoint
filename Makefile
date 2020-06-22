@@ -2,7 +2,7 @@ all: example
 
 INCLUDES=-I../libgeom
 LIBS=-L../libgeom/release -lgeom
-CXXFLAGS=-Wall -pedantic -std=c++17 $(INCLUDES)
+CXXFLAGS=-Wall -pedantic -std=c++17 -O3 $(INCLUDES)
 
 example: example.o midpoint.o
 	g++ -o $@ $^ $(LIBS)

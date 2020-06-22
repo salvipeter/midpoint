@@ -20,11 +20,19 @@
 
 class MidPoint {
 public:
-  // Constructors & evaluation
+  // Constructor
   MidPoint(size_t n);
+
+  // Getters & setters
+  std::pair<Geometry::BSCurve, Geometry::BSCurve> interpolant(size_t i) const;
   void setInterpolant(size_t i, const Geometry::BSCurve &outer, const Geometry::BSCurve &inner);
+  Geometry::Point3D midpoint() const;
   void setMidpoint(const Geometry::Point3D &p);
   void resetMidpoint();
+  double multiplier(size_t i) const;
+  void setMultiplier(size_t i, double m);
+
+  // Evaluation
   void updateCorners();
   Geometry::Point3D eval(const Geometry::Point2D &uv, double *deficiency = nullptr) const;
   Geometry::TriMesh eval(size_t resolution) const;
@@ -37,6 +45,7 @@ public:
 
 private:
   void updateCentralControlPoint();
+  double crossScaling(size_t i) const;
   Geometry::Vector3D crossDerivative(size_t i, double si) const;
   Geometry::Point3D sideInterpolant(size_t i, double si, double di) const;
   Geometry::Point3D cornerCorrection(size_t i, double s1, double s2) const;
@@ -50,6 +59,7 @@ private:
   size_t n_;
   Geometry::Point3D central_cp_, midpoint_;
   std::vector<Geometry::BSCurve> outers_, inners_;
+  std::vector<double> multipliers_;
   std::vector<CornerData> corners_;
   Geometry::Point2DVector domain_;
 };

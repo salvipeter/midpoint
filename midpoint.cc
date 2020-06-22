@@ -48,14 +48,21 @@ MidPoint::MidPoint(size_t n) : n_(n)
     for (size_t i = 0; i < n_; ++i)
       domain_.emplace_back(std::cos(alpha * i), std::sin(alpha * i));
   }
+
   // Create data arrays
   outers_.resize(n_);
   inners_.resize(n_);
+  multipliers_.resize(n_, 1.0);
   corners_.resize(n_);
 }
 
 
 // Constraint modifications
+
+std::pair<Geometry::BSCurve, Geometry::BSCurve>
+MidPoint::interpolant(size_t i) const {
+  return { outers_[i], inners_[i] };
+}
 
 void
 MidPoint::setInterpolant(size_t i, const BSCurve &outer, const BSCurve &inner) {
@@ -75,6 +82,11 @@ MidPoint::updateCentralControlPoint() {
     central_cp_ = (midpoint_ - s) / def;
 }
 
+Geometry::Point3D
+MidPoint::midpoint() const {
+  return midpoint_;
+}
+
 void
 MidPoint::setMidpoint(const Point3D &p) {
   midpoint_ = p;
@@ -90,21 +102,31 @@ MidPoint::resetMidpoint() {
   updateCentralControlPoint();
 }
 
+double
+MidPoint::multiplier(size_t i) const {
+  return multipliers_[i];
+}
+
+void
+MidPoint::setMultiplier(size_t i, double m) {
+  multipliers_[i] = m;
+}
+
 
 // Side- and corner interpolant evaluation
 
-Vector3D
-MidPoint::crossDerivative(size_t i, double si) const {
-  si = inrange(0, si, 1);
-  auto dir = inners_[i].eval(si) - outers_[i].eval(si);
-  return dir * outers_[i].basis().degree();
+double
+MidPoint::crossScaling(size_t i) const {
+  return outers_[i].basis().degree() * multipliers_[i];
 }
 
 Point3D
 MidPoint::sideInterpolant(size_t i, double si, double di) const {
   si = inrange(0, si, 1);
   di = std::max(gammaBlend(di), 0.0);
-  return outers_[i].eval(si) + crossDerivative(i, si) * di;
+  auto p = outers_[i].eval(si);
+  auto dir = inners_[i].eval(si) - p;
+  return p + dir * crossScaling(i) * di;
 }
 
 Point3D
@@ -136,21 +158,16 @@ MidPoint::cornerCorrection(size_t i, double s1, double s2) const {
 void
 MidPoint::updateCorners() {
   for (size_t i = 0; i < n_; ++i) {
-    double step = 1.0e-4;
     size_t ip = (i + 1) % n_;
-
     VectorVector der;
-    Vector3D d1, d2;
     corners_[i].point = outers_[i].eval(1.0, 1, der);
     corners_[i].tangent1 = -der[1];
     outers_[ip].eval(0.0, 1, der);
     corners_[i].tangent2 = der[1];
-    d1 = crossDerivative(i, 1.0);
-    d2 = crossDerivative(i, 1.0 - step);
-    corners_[i].twist1 = (d2 - d1) / step;
-    d1 = crossDerivative(ip, 0.0);
-    d2 = crossDerivative(ip, step);
-    corners_[i].twist2 = (d2 - d1) / step;
+    inners_[i].eval(1.0, 1, der);
+    corners_[i].twist1 = (-der[1] - corners_[i].tangent1) * crossScaling(ip);
+    inners_[ip].eval(0.0, 1, der);
+    corners_[i].twist2 = (der[1] - corners_[i].tangent2) * crossScaling(i);
   }
 }
 
