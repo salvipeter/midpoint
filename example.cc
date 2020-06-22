@@ -42,6 +42,7 @@ MidPoint readPatch(std::string filename) {
   }
 
   result.updateCorners();
+  result.updateDomain();
 
   try {
     auto mp = readPoint(f);

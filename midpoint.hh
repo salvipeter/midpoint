@@ -1,15 +1,17 @@
 #pragma once
 
-#include <geometry.hh>
+#include "domain.hh"
 
 // Note that
-// - the interpolants have to be set before (re)setting the midpoint
+// - the interpolants, corners and domain have to be set before (re)setting the midpoint
 // - updateCorners() has to be called every time when the corner twists have changed
+// - updateDomain() has to be called
+//   - only once for a regular domain
 // - the midpoint has to be (re)set before evaluation
 
 // So the correct order is:
 // 1. Set up interpolants
-// 2. Call updateCorners()
+// 2. Call updateCorners() & updateDomain()
 // 3. Set up midpoint
 // 4. Evaluate
 // The patch can be directly re-evaluated after modification,
@@ -31,17 +33,13 @@ public:
   void resetMidpoint();
   double multiplier(size_t i) const;
   void setMultiplier(size_t i, double m);
+  const Domain *domain() const;
 
   // Evaluation
   void updateCorners();
+  void updateDomain();
   Geometry::Point3D eval(const Geometry::Point2D &uv, double *deficiency = nullptr) const;
   Geometry::TriMesh eval(size_t resolution) const;
-
-  // Mesh generation utilities
-  Geometry::Point2DVector domain() const;
-  Geometry::Point2DVector parameters(size_t resolution) const;
-  Geometry::TriMesh meshTopology(size_t resolution) const;
-  bool onEdge(size_t resolution, size_t index) const;
 
 private:
   void updateCentralControlPoint();
@@ -61,5 +59,5 @@ private:
   std::vector<Geometry::BSCurve> outers_, inners_;
   std::vector<double> multipliers_;
   std::vector<CornerData> corners_;
-  Geometry::Point2DVector domain_;
+  std::unique_ptr<Domain> domain_;
 };
