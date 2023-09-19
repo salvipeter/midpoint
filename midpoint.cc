@@ -31,7 +31,6 @@ MidPoint::MidPoint(size_t n) : n_(n)
 {
   outers_.resize(n_);
   inners_.resize(n_);
-  multipliers_.resize(n_, 1.0);
   corners_.resize(n_);
   domain_ = std::make_unique<RegularDomain>(n_);
 }
@@ -82,16 +81,6 @@ MidPoint::resetMidpoint() {
   updateCentralControlPoint();
 }
 
-double
-MidPoint::multiplier(size_t i) const {
-  return multipliers_[i];
-}
-
-void
-MidPoint::setMultiplier(size_t i, double m) {
-  multipliers_[i] = m;
-}
-
 const Domain *
 MidPoint::domain() const {
   return domain_.get();
@@ -100,18 +89,13 @@ MidPoint::domain() const {
 
 // Side- and corner interpolant evaluation
 
-double
-MidPoint::crossScaling(size_t i) const {
-  return multipliers_[i];
-}
-
 Point3D
 MidPoint::sideInterpolant(size_t i, double si, double di) const {
   si = std::clamp(si, 0.0, 1.0);
   di = std::max(gammaBlend(di), 0.0);
   auto p = outers_[i]->eval(si);
   auto dir = inners_[i]->eval(si) - p;
-  return p + dir * crossScaling(i) * di;
+  return p + dir * di;
 }
 
 Point3D
@@ -137,7 +121,7 @@ MidPoint::cornerCorrection(size_t i, double s1, double s2) const {
   return corners_[i].point
     + corners_[i].tangent1 * s1
     + corners_[i].tangent2 * s2
-    + rationalTwist(s1, s2, corners_[i].twist2, corners_[i].twist1) * s1 * s2;
+    + rationalTwist(s1, s2, corners_[i].twist1, corners_[i].twist2) * s1 * s2;
 }
 
 void
@@ -145,14 +129,13 @@ MidPoint::updateCorners() {
   for (size_t i = 0; i < n_; ++i) {
     size_t ip = (i + 1) % n_;
     VectorVector der;
-    corners_[i].point = outers_[i]->eval(1.0, 1, der);
-    corners_[i].tangent1 = -der[1];
-    outers_[ip]->eval(0.0, 1, der);
-    corners_[i].tangent2 = der[1];
+    corners_[i].point = outers_[i]->eval(1.0);
+    corners_[i].tangent1 = inners_[ip]->eval(0.0) - corners_[i].point;
+    corners_[i].tangent2 = inners_[i]->eval(1.0) - corners_[i].point;
     inners_[i]->eval(1.0, 1, der);
-    corners_[i].twist1 = (-der[1] - corners_[i].tangent1) * crossScaling(i);
+    corners_[i].twist1 = -der[1] - corners_[i].tangent1;
     inners_[ip]->eval(0.0, 1, der);
-    corners_[i].twist2 = (der[1] - corners_[i].tangent2) * crossScaling(ip);
+    corners_[i].twist2 = der[1] - corners_[i].tangent2;
   }
 }
 
@@ -216,9 +199,5 @@ MidPoint::eval(size_t resolution) const {
   std::transform(uvs.begin(), uvs.end(), std::back_inserter(points),
                  [&](const Point2D &uv) { return eval(uv); });
   mesh.setPoints(points);
-  std::cout << sideInterpolant(3,0.5,0) << std::endl;
-  std::cout << sideInterpolant(4,0,0.5) << std::endl;
-  std::cout << cornerCorrection(3,0.5,0) << std::endl;
-  std::cout << cornerInterpolant(3,{{0.5,1},{0.5,1},{1,0.5},{0.5,0},{0,0.5}}) << std::endl;
   return mesh;
 }

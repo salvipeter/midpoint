@@ -40,8 +40,6 @@ public:
   Geometry::Point3D midpoint() const;
   void setMidpoint(const Geometry::Point3D &p);
   void resetMidpoint();
-  double multiplier(size_t i) const;
-  void setMultiplier(size_t i, double m);
   const Domain *domain() const;
 
   // Evaluation
@@ -52,7 +50,6 @@ public:
 
 private:
   void updateCentralControlPoint();
-  double crossScaling(size_t i) const;
   Geometry::Vector3D crossDerivative(size_t i, double si) const;
   Geometry::Point3D sideInterpolant(size_t i, double si, double di) const;
   Geometry::Point3D cornerCorrection(size_t i, double s1, double s2) const;
@@ -66,7 +63,6 @@ private:
   size_t n_;
   Geometry::Point3D central_cp_, midpoint_;
   std::vector<CurvePtr> outers_, inners_;
-  std::vector<double> multipliers_;
   std::vector<CornerData> corners_;
   std::unique_ptr<Domain> domain_;
 };

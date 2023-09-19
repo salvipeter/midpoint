@@ -1,4 +1,5 @@
-// Example: sphere-patch 5 0.7 0.8 30
+// Example: sphere-patch 5 0.7 1.2 30
+// Example: sphere-patch 8 0.7 1.8 50
 
 #include <cassert>
 #include <cmath>
@@ -10,80 +11,70 @@ using namespace Geometry;
 
 class Arc : public MidPoint::Curve {
 public:
-  Arc(size_t n, size_t i, double z, double zo = 0.0) : z(z) {
+  Arc(size_t n, size_t i, double r, double m) : m(m) {
+    double t0, t1;
     t0 = 2 * M_PI * i / n;
     t1 = 2 * M_PI * (i + 1) / n;
-    if (zo > 0) {
-      r = std::sqrt(1 - zo * zo);
-      r -= zo * (z - zo) / r;
-    } else
-      r = std::sqrt(1 - z * z);
-    p0 = Point3D(r * std::cos(t0), r * std::sin(t0), z);
-    p1 = Point3D(r * std::cos(t1), r * std::sin(t1), z);
-    rot = Matrix3x3::rotation((p1 - p0).normalize(), -M_PI / 6);
-    //rot = Matrix3x3::identity();
+    p0 = Point3D(r * std::cos(t0), r * std::sin(t0), 0);
+    p1 = Point3D(r * std::cos(t1), r * std::sin(t1), 0);
   }
+  void setPrev(MidPoint::CurvePtr c) { VectorVector der; c->eval(1, 1, der); d0 = -der[1]; }
+  void setNext(MidPoint::CurvePtr c) { VectorVector der; c->eval(0, 1, der); d1 = der[1]; }
   Point3D eval(double u) const override {
-    double t = t0 + (t1 - t0) * u;
-    Point3D q(r * std::cos(t), r * std::sin(t), z);
-    return p0 + rot * (q - p0);
+    auto p = p0 + (p1 - p0) * u;
+    p[2] = std::sqrt(1 - p[0] * p[0] - p[1] * p[1]);
+    if (m > 0) {
+      auto d = d0 + (d1 - d0) * u;
+      auto n = p.normalized();
+      d -= n * (n * d);
+      d *= (1 - u) * (1 - u) + 2 * (1 - u) * u * (2 * m - 1) + u * u; 
+      return p + d;
+    }
+    return p;
   }
   Point3D eval(double u, size_t n, VectorVector &der) const override {
     assert(n == 1);
     der.resize(2);
-    double t = t0 + (t1 - t0) * u;
-    Point3D q(r * std::cos(t), r * std::sin(t), z);
-    Vector3D d(-q[1], q[0], 0); 
-    der[0] = p0 + rot * (q - p0);
-    der[1] = rot * d * (t1 - t0);
+    auto q0 = eval(u), q1 = eval(u + epsilon);
+    der[0] = q0;
+    der[1] = (q1 - q0) / epsilon;
     return der[0];
   }
 private:
-  double t0, t1, r, z;
+  double m;
   Point3D p0, p1;
-  Matrix3x3 rot;
+  Vector3D d0, d1;
+  MidPoint::CurvePtr prev, next;
 };
 
 int main(int argc, char **argv) {
   if (argc < 4 || argc > 5) {
     std::cerr << "Usage: " << argv[0] 
-      << " <# of sides> <z_out> <z_in> [resolution]" << std::endl;
+      << " <# of sides> <r> <multiplier> [resolution]" << std::endl;
     return 1;
   }
 
   size_t resolution = 15;
   size_t n = std::atoi(argv[1]);
-  double zo = std::strtod(argv[2], nullptr);
-  double zi = std::strtod(argv[3], nullptr);
+  double r = std::strtod(argv[2], nullptr);
+  double m = std::strtod(argv[3], nullptr);
   if (argc == 5)
     resolution = std::atoi(argv[4]);
 
   MidPoint patch(n);
   for (size_t i = 0; i < n; ++i)
     patch.setInterpolant(i, 
-        std::make_shared<Arc>(n, i, zo),
-        std::make_shared<Arc>(n, i, zi, zo));
+        std::make_shared<Arc>(n, i, r, 0),
+        std::make_shared<Arc>(n, i, r, m));
+  for (size_t i = 0; i < n; ++i) {
+    size_t im = (i + n - 1) % n;
+    size_t ip = (i + 1) % n;
+    dynamic_cast<Arc *>(patch.interpolant(i).second.get())->setPrev(patch.interpolant(im).first);
+    dynamic_cast<Arc *>(patch.interpolant(i).second.get())->setNext(patch.interpolant(ip).first);
+  }
   patch.updateCorners();
   patch.updateDomain();
   patch.setMidpoint({0, 0, 1});
 
   patch.eval(resolution).writeOBJ("sphere-test.obj");
-
-  std::ofstream f("/tmp/curve.obj");
-  size_t index = 0;
-  for (size_t i = 0; i < 100; ++i) {
-    double u = i / 99.0;
-    f << "v " << patch.interpolant(index).first->eval(u) << std::endl;
-  }
-  for (size_t i = 0; i < 100; ++i) {
-    double u = i / 99.0;
-    f << "v " << patch.interpolant(index).second->eval(u) << std::endl;
-  }
-  f << 'l';
-  for (size_t i = 0; i < 100; ++i)
-    f << ' ' << i + 1;
-  f << "\nl";
-  for (size_t i = 0; i < 100; ++i)
-    f << ' ' << i + 101;
-  f << std::endl;
 }

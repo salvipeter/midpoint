@@ -51,11 +51,9 @@ MidPoint readPatch(std::string filename) {
   for (size_t i = 0; i < n; ++i) {
     auto outer = readCurve(f); outer.normalize();
     auto inner = readCurve(f); inner.normalize();
-    double multiplier; f >> multiplier;
     result.setInterpolant(i, 
         std::make_shared<BSpline>(outer),
         std::make_shared<BSpline>(inner));
-    result.setMultiplier(i, multiplier);
   }
 
   result.updateCorners();
