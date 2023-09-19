@@ -81,5 +81,6 @@ int main(int argc, char **argv) {
   if (argc == 3)
     resolution = std::atoi(argv[2]);
 
-  readPatch(argv[1]).eval(resolution).writeOBJ("test.obj");
+  auto patch = readPatch(argv[1]);
+  patch.eval(resolution).writeOBJ("test.obj");
 }

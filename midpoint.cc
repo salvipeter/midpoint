@@ -12,14 +12,6 @@ using namespace Geometry;
 
 // Utilities
 
-static double inrange(double min, double x, double max) {
-  if (x < min)
-    return min;
-  if (x > max)
-    return max;
-  return x;
-}
-
 static double hermite(double t) {
   return std::pow(1 - t, 3) + 3.0 * std::pow(1 - t, 2) * t;
 }
@@ -115,7 +107,7 @@ MidPoint::crossScaling(size_t i) const {
 
 Point3D
 MidPoint::sideInterpolant(size_t i, double si, double di) const {
-  si = inrange(0, si, 1);
+  si = std::clamp(si, 0.0, 1.0);
   di = std::max(gammaBlend(di), 0.0);
   auto p = outers_[i]->eval(si);
   auto dir = inners_[i]->eval(si) - p;
@@ -140,8 +132,8 @@ Point3D
 MidPoint::cornerCorrection(size_t i, double s1, double s2) const {
   // Assumes that both s1 and s2 are 0 at the corner,
   // s1 increases towards corner (i-1), and s2 towards corner (i+1).
-  s1 = inrange(0, gammaBlend(s1), 1);
-  s2 = inrange(0, gammaBlend(s2), 1);
+  s1 = std::clamp(gammaBlend(s1), 0.0, 1.0);
+  s2 = std::clamp(gammaBlend(s2), 0.0, 1.0);
   return corners_[i].point
     + corners_[i].tangent1 * s1
     + corners_[i].tangent2 * s2
@@ -158,9 +150,9 @@ MidPoint::updateCorners() {
     outers_[ip]->eval(0.0, 1, der);
     corners_[i].tangent2 = der[1];
     inners_[i]->eval(1.0, 1, der);
-    corners_[i].twist1 = (-der[1] - corners_[i].tangent1) * crossScaling(ip);
+    corners_[i].twist1 = (-der[1] - corners_[i].tangent1) * crossScaling(i);
     inners_[ip]->eval(0.0, 1, der);
-    corners_[i].twist2 = (der[1] - corners_[i].tangent2) * crossScaling(i);
+    corners_[i].twist2 = (der[1] - corners_[i].tangent2) * crossScaling(ip);
   }
 }
 
@@ -224,5 +216,9 @@ MidPoint::eval(size_t resolution) const {
   std::transform(uvs.begin(), uvs.end(), std::back_inserter(points),
                  [&](const Point2D &uv) { return eval(uv); });
   mesh.setPoints(points);
+  std::cout << sideInterpolant(3,0.5,0) << std::endl;
+  std::cout << sideInterpolant(4,0,0.5) << std::endl;
+  std::cout << cornerCorrection(3,0.5,0) << std::endl;
+  std::cout << cornerInterpolant(3,{{0.5,1},{0.5,1},{1,0.5},{0.5,0},{0,0.5}}) << std::endl;
   return mesh;
 }

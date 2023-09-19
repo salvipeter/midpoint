@@ -1,4 +1,6 @@
 *~
 *.o
 example
+sphere-patch
 test.obj
+sphere-test.obj
