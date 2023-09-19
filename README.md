@@ -4,7 +4,7 @@ Minimal library for [MidPoint patches](https://arxiv.org/abs/2002.11212).
 Uses my [geometry library](https://github.com/salvipeter/libgeom/).
 
 Based on the code in the [Transfinite library](https://github.com/salvipeter/transfinite/),
-but here the ribbons are defined by pairs of B-spline curves.
+but here the ribbons are defined by pairs of curves.
 
 The example program reads `.mp` files that have the following format:
 ```
@@ -29,3 +29,5 @@ where a B-spline curve is given as
 ```
 
 See the example file `cagd86.mp`.
+
+Other curve types can also be used; the `sphere-patch` program shows an example.
