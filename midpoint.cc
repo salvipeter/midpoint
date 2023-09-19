@@ -47,13 +47,13 @@ MidPoint::MidPoint(size_t n) : n_(n)
 
 // Constraint modifications
 
-std::pair<Geometry::BSCurve, Geometry::BSCurve>
+std::pair<MidPoint::CurvePtr, MidPoint::CurvePtr>
 MidPoint::interpolant(size_t i) const {
   return { outers_[i], inners_[i] };
 }
 
 void
-MidPoint::setInterpolant(size_t i, const BSCurve &outer, const BSCurve &inner) {
+MidPoint::setInterpolant(size_t i, const CurvePtr &outer, const CurvePtr &inner) {
   outers_[i] = outer;
   inners_[i] = inner;
 }
@@ -110,15 +110,15 @@ MidPoint::domain() const {
 
 double
 MidPoint::crossScaling(size_t i) const {
-  return outers_[i].basis().degree() * multipliers_[i];
+  return multipliers_[i];
 }
 
 Point3D
 MidPoint::sideInterpolant(size_t i, double si, double di) const {
   si = inrange(0, si, 1);
   di = std::max(gammaBlend(di), 0.0);
-  auto p = outers_[i].eval(si);
-  auto dir = inners_[i].eval(si) - p;
+  auto p = outers_[i]->eval(si);
+  auto dir = inners_[i]->eval(si) - p;
   return p + dir * crossScaling(i) * di;
 }
 
@@ -153,13 +153,13 @@ MidPoint::updateCorners() {
   for (size_t i = 0; i < n_; ++i) {
     size_t ip = (i + 1) % n_;
     VectorVector der;
-    corners_[i].point = outers_[i].eval(1.0, 1, der);
+    corners_[i].point = outers_[i]->eval(1.0, 1, der);
     corners_[i].tangent1 = -der[1];
-    outers_[ip].eval(0.0, 1, der);
+    outers_[ip]->eval(0.0, 1, der);
     corners_[i].tangent2 = der[1];
-    inners_[i].eval(1.0, 1, der);
+    inners_[i]->eval(1.0, 1, der);
     corners_[i].twist1 = (-der[1] - corners_[i].tangent1) * crossScaling(ip);
-    inners_[ip].eval(0.0, 1, der);
+    inners_[ip]->eval(0.0, 1, der);
     corners_[i].twist2 = (der[1] - corners_[i].tangent2) * crossScaling(i);
   }
 }

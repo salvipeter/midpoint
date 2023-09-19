@@ -22,12 +22,21 @@
 
 class MidPoint {
 public:
+  class Curve {
+  public:
+    virtual ~Curve() { }
+    virtual Geometry::Point3D eval(double u) const = 0;
+    virtual Geometry::Point3D eval(double u, size_t n,
+        Geometry::VectorVector &der) const = 0;
+  };
+  using CurvePtr = std::shared_ptr<Curve>;
+
   // Constructor
   MidPoint(size_t n);
 
   // Getters & setters
-  std::pair<Geometry::BSCurve, Geometry::BSCurve> interpolant(size_t i) const;
-  void setInterpolant(size_t i, const Geometry::BSCurve &outer, const Geometry::BSCurve &inner);
+  std::pair<CurvePtr, CurvePtr> interpolant(size_t i) const;
+  void setInterpolant(size_t i, const CurvePtr &outer, const CurvePtr &inner);
   Geometry::Point3D midpoint() const;
   void setMidpoint(const Geometry::Point3D &p);
   void resetMidpoint();
@@ -56,7 +65,7 @@ private:
 
   size_t n_;
   Geometry::Point3D central_cp_, midpoint_;
-  std::vector<Geometry::BSCurve> outers_, inners_;
+  std::vector<CurvePtr> outers_, inners_;
   std::vector<double> multipliers_;
   std::vector<CornerData> corners_;
   std::unique_ptr<Domain> domain_;

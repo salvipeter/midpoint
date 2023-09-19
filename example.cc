@@ -5,6 +5,19 @@
 
 using namespace Geometry;
 
+class BSpline : public MidPoint::Curve {
+public:
+  BSpline(const BSCurve &curve) : curve(curve) { }
+  Point3D eval(double u) const override {
+    return curve.eval(u);
+  }
+  Point3D eval(double u, size_t n, VectorVector &der) const override {
+    return curve.eval(u, n, der);
+  }
+private:
+  BSCurve curve;
+};
+
 Point3D readPoint(std::istream &is) {
   Point3D p;
   is >> p[0] >> p[1] >> p[2];
@@ -38,7 +51,11 @@ MidPoint readPatch(std::string filename) {
   for (size_t i = 0; i < n; ++i) {
     auto outer = readCurve(f); outer.normalize();
     auto inner = readCurve(f); inner.normalize();
-    result.setInterpolant(i, outer, inner);
+    double multiplier; f >> multiplier;
+    result.setInterpolant(i, 
+        std::make_shared<BSpline>(outer),
+        std::make_shared<BSpline>(inner));
+    result.setMultiplier(i, multiplier);
   }
 
   result.updateCorners();

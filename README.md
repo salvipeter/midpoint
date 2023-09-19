@@ -20,6 +20,7 @@ Each ribbon is in the format
 ```
 <outer curve>
 <inner curve>
+<multiplier>
 ```
 where a B-spline curve is given as
 ```
