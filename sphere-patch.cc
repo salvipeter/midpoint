@@ -27,7 +27,8 @@ public:
       auto d = d0 + (d1 - d0) * u;
       auto n = p.normalized();
       d -= n * (n * d);
-      d *= (1 - u) * (1 - u) + 2 * (1 - u) * u * (2 * m - 1) + u * u; 
+      //d *= (1 - u) * (1 - u) + 2 * (1 - u) * u * (2 * m - 1) + u * u;
+      d *= std::pow(1-u,4)+4*std::pow(1-u,3)*u+6*std::pow(1-u,2)*std::pow(u,2)*(8*m-5)/3+4*(1-u)*std::pow(u,3)+std::pow(u,4);
       return p + d;
     }
     return p;
