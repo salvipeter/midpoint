@@ -121,7 +121,7 @@ MidPoint::cornerCorrection(size_t i, double s1, double s2) const {
   return corners_[i].point
     + corners_[i].tangent1 * s1
     + corners_[i].tangent2 * s2
-    + rationalTwist(s1, s2, corners_[i].twist1, corners_[i].twist2) * s1 * s2;
+    + rationalTwist(s1, s2, corners_[i].twist2, corners_[i].twist1) * s1 * s2;
 }
 
 void

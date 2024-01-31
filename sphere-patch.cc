@@ -27,7 +27,7 @@ public:
       auto d = d0 + (d1 - d0) * u;
       auto n = p.normalized();
       d -= n * (n * d);
-      //d *= (1 - u) * (1 - u) + 2 * (1 - u) * u * (2 * m - 1) + u * u;
+      // d *= (1 - u) * (1 - u) + 2 * (1 - u) * u * (2 * m - 1) + u * u;
       d *= std::pow(1-u,4)+4*std::pow(1-u,3)*u+6*std::pow(1-u,2)*std::pow(u,2)*(8*m-5)/3+4*(1-u)*std::pow(u,3)+std::pow(u,4);
       return p + d;
     }
@@ -47,6 +47,18 @@ private:
   Vector3D d0, d1;
   MidPoint::CurvePtr prev, next;
 };
+
+void writeRibbon(const MidPoint::Curve *c1, const MidPoint::Curve *c2, std::string filename) {
+  size_t res = 100;
+  std::ofstream f(filename);
+  for (size_t i = 0; i < res; ++i) {
+    double u = (double)i / (res - 1);
+    f << "v " << c1->eval(u) << std::endl;
+    f << "v " << c2->eval(u) << std::endl;
+  }
+  for (size_t i = 1; i < res; ++i)
+    f << "f " << 2 * i + 1 << ' ' << 2 * i + 2 << ' ' << 2 * i << ' ' << 2 * i - 1 << std::endl;
+}
 
 int main(int argc, char **argv) {
   if (argc < 4 || argc > 5) {
@@ -77,5 +89,8 @@ int main(int argc, char **argv) {
   patch.updateDomain();
   patch.setMidpoint({0, 0, 1});
 
+  for (size_t i = 0; i < n; ++i)
+    writeRibbon(patch.interpolant(i).first.get(), patch.interpolant(i).second.get(),
+                std::string("ribbon") + std::to_string(i + 1) + ".obj");
   patch.eval(resolution).writeOBJ("sphere-test.obj");
 }
